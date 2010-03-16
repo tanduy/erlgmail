@@ -34,7 +34,7 @@ start_link() ->
     gen_server:start_link({local, ?SERVER}, ?MODULE, application:get_all_env(), []).
 
 
-%%--------------------------------------------------------------------  
+%%--------------------------------------------------------------------
 %% @doc Sends an email with subject Subject and message body Body to the recepients configured in the default profile. Uses the default profile.
 %% @spec send(Subject::string(), Body::string()) -> ok
 %% @equiv erlgmail:send("Subject", "Body", default)
@@ -82,7 +82,7 @@ psend_html(Subject, Body, To, Profile) when is_atom(Profile) ->
     psend_html(Subject, Body, To, [], Profile).
 
 %%--------------------------------------------------------------------
-%% Function: send  
+%% Function: send
 %% Description: sends the  mail to recipients in To with the display names in HeaderTo using the default profile
 %%--------------------------------------------------------------------
 send(Subject, Body, To, HeaderTo) ->
@@ -92,7 +92,7 @@ send_html(Subject, Body, To, HeaderTo) ->
     psend(Subject, Body, To, HeaderTo, default).
 
 %%--------------------------------------------------------------------
-%% Function: send  
+%% Function: send
 %% Description: sends the  mail to recipients in To using with display names in HeaderTo using Profile
 %%--------------------------------------------------------------------
 psend(Subject, Body, To, HeaderTo, Profile) ->
@@ -125,9 +125,14 @@ init(L) ->
 	    IsAbsolute = proplists:get_value(absolute, L, false),
 	    ConfigFile = case IsAbsolute of
 			     false ->
-				 filename:join(code:priv_dir(?MODULE), Filename);
-			     _ ->
-				 Filename
+					PrivPath = case code:priv_dir(?MODULE) of
+						{error,bad_name} -> "priv";
+
+						_Path -> _Path
+					end,
+					filename:join(PrivPath, Filename);
+
+			     _ -> Filename
 			 end,
 	    %% Get the dictionary of configname -> config records
 	    Config = config_reader:get_config2(ConfigFile),
@@ -158,7 +163,7 @@ handle_call(_Request, _From, State) ->
 %% Description: Handling cast messages
 %%--------------------------------------------------------------------
 handle_cast({Profile, Message0, Times}, {Sockets, Configs}=State) ->
-    Config = dict:fetch(Profile, Configs),	
+    Config = dict:fetch(Profile, Configs),
     %%Set the who to
     Message1 =
 	case Message0#email.to of
@@ -167,7 +172,7 @@ handle_cast({Profile, Message0, Times}, {Sockets, Configs}=State) ->
 	end,
 
     %%And the who to to show
-    Message2 = 
+    Message2 =
 	case Message0#email.header_to of
 	    [] -> Message1#email{header_to=Config#config.header_to};
 	    _ -> Message1
@@ -230,7 +235,7 @@ send_email(_Socket, _SmtpConfig, Message, 0) ->
     failed;
 send_email(Socket, SmtpConfig, Message, Times) ->
     S = try ssl:connection_info(Socket) of
-	    {ok, _} ->  
+	    {ok, _} ->
 		Socket;
 	    {error, _} ->
 		new_smtp:connect(SmtpConfig)
